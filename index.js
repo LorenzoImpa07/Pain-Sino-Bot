@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder
 const express = require('express');
 require('dotenv').config();
 
-// Configurazione server Express per Render
+// Configurazione server Express per Render (ascolto su 0.0.0.0 per UptimeRobot)
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -10,7 +10,7 @@ app.get('/', (req, res) => {
   res.send('Pino & Sino Hub Bot è online!');
 });
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`[EXPRESS] Mini server web in ascolto sulla porta ${port}`);
 });
 
@@ -24,7 +24,7 @@ const client = new Client({
   ],
 });
 
-// Variabili di configurazione dal file .env
+// Variabili di configurazione lette dall'ambiente di Render
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const VERIFIED_ROLE_ID = process.env.VERIFIED_ROLE_ID;
@@ -102,7 +102,6 @@ client.once('ready', async () => {
 
 // Evento: Assegnazione ruolo non verificato e benvenuto nuovi membri
 client.on('guildMemberAdd', async (member) => {
-  // Assegnazione automatica ruolo non verificato
   try {
     const unverifiedRole = member.guild.roles.cache.get(UNVERIFIED_ROLE_ID);
     if (unverifiedRole) {
@@ -112,7 +111,6 @@ client.on('guildMemberAdd', async (member) => {
     console.error('Errore nell assegnazione del ruolo non verificato:', error);
   }
 
-  // Invio messaggio di benvenuto nel canale dedicato (se configurato)
   if (!WELCOME_CHANNEL_ID) return;
   const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
   if (!channel) return;
@@ -259,7 +257,7 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
-  // Gestione Bottoni (inclusa la verifica con rimozione ruolo non verificato e aggiunta ruolo verificato)
+  // Gestione Bottoni
   if (interaction.isButton()) {
     if (interaction.customId === 'verify_btn') {
       if (!VERIFIED_ROLE_ID) {
@@ -277,9 +275,7 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       try {
-        // Aggiunge il ruolo verificato
         await interaction.member.roles.add(verifiedRole);
-        // Rimuove il ruolo non verificato (se l'utente lo possiede)
         if (unverifiedRole && interaction.member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
           await interaction.member.roles.remove(unverifiedRole);
         }
@@ -302,7 +298,6 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isStringSelectMenu()) {
     const guild = interaction.guild;
 
-    // 1. Menu Principale
     if (interaction.customId === 'ticket_main_select') {
       const selectedValue = interaction.values[0];
 
@@ -311,42 +306,12 @@ client.on('interactionCreate', async (interaction) => {
           .setCustomId('ticket_staff_role_select')
           .setPlaceholder('Seleziona il ruolo per cui candidarti...')
           .addOptions([
-            {
-              label: 'Helper',
-              description: 'Candidati per il ruolo di Helper',
-              value: 'candidatura_helper',
-              emoji: '💡',
-            },
-            {
-              label: 'Mod',
-              description: 'Candidati per il ruolo di Mod',
-              value: 'candidatura_mod',
-              emoji: '🛡️',
-            },
-            {
-              label: 'Admin',
-              description: 'Candidati per il ruolo di Admin',
-              value: 'candidatura_admin',
-              emoji: '⚡',
-            },
-            {
-              label: 'Media',
-              description: 'Candidati per il ruolo di Media',
-              value: 'candidatura_media',
-              emoji: '📸',
-            },
-            {
-              label: 'Streamer',
-              description: 'Candidati per il ruolo di Streamer',
-              value: 'candidatura_streamer',
-              emoji: '🎥',
-            },
-            {
-              label: 'Youtuber',
-              description: 'Candidati per il ruolo di Youtuber',
-              value: 'candidatura_youtuber',
-              emoji: '▶️',
-            },
+            { label: 'Helper', description: 'Candidati per il ruolo di Helper', value: 'candidatura_helper', emoji: '💡' },
+            { label: 'Mod', description: 'Candidati per il ruolo di Mod', value: 'candidatura_mod', emoji: '🛡️' },
+            { label: 'Admin', description: 'Candidati per il ruolo di Admin', value: 'candidatura_admin', emoji: '⚡' },
+            { label: 'Media', description: 'Candidati per il ruolo di Media', value: 'candidatura_media', emoji: '📸' },
+            { label: 'Streamer', description: 'Candidati per il ruolo di Streamer', value: 'candidatura_streamer', emoji: '🎥' },
+            { label: 'Youtuber', description: 'Candidati per il ruolo di Youtuber', value: 'candidatura_youtuber', emoji: '▶️' },
           ]);
 
         const staffRow = new ActionRowBuilder().addComponents(staffSelectMenu);
@@ -401,7 +366,6 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.reply({ content: `Ticket creato con successo: ${ticketChannel}`, ephemeral: true });
     }
 
-    // 2. Menu Secondario per le Candidature Staff
     if (interaction.customId === 'ticket_staff_role_select') {
       const selectedRoleValue = interaction.values[0];
       let roleName = '';
