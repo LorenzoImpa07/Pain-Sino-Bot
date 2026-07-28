@@ -27,7 +27,7 @@ if (!TOKEN) {
   process.exit(1);
 }
 
-client.once('ready', async () => {
+client.once('clientReady', async () => {
   console.log(`[BOT ONLINE] Acceduto come: ${client.user.tag}`);
 
   // Registrazione dei Comandi Slash
@@ -94,11 +94,14 @@ client.once('ready', async () => {
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   try {
     if (GUILD_ID) {
-      // Registrazione istantanea sul server specifico
+      // 1. Pulisce eventuali comandi globali residui per evitare i doppi comandi
+      await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
+      console.log('[RAILWAY/DEPLOY] Comandi globali vecchi eliminati con successo.');
+
+      // 2. Registra i comandi istantaneamente sulla gilda
       await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
       console.log('[RAILWAY/DEPLOY] Comandi registrati istantaneamente sulla gilda!');
     } else {
-      // Fallback globale se manca GUILD_ID
       await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
       console.log('[RAILWAY/DEPLOY] Comandi registrati globalmente!');
     }
