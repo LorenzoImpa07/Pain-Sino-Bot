@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ChannelType, PermissionsBitField, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelType, PermissionsBitField, REST, Routes } = require('discord.js');
 require('dotenv').config();
 
 // Inizializzazione Client Discord con gli Intent necessari (incluso GuildMembers)
@@ -39,6 +39,11 @@ client.once('ready', async () => {
     {
       name: 'setup-ticket',
       description: 'Invia il pannello avanzato dei ticket con menu a tendina',
+      defaultMemberPermissions: PermissionsBitField.Flags.Administrator.toString(),
+    },
+    {
+      name: 'set-regole',
+      description: 'apri un pannello per scrivere e pubblicare le regole del server',
       defaultMemberPermissions: PermissionsBitField.Flags.Administrator.toString(),
     },
     {
@@ -118,7 +123,7 @@ client.on('guildMemberAdd', async (member) => {
   channel.send({ embeds: [welcomeEmbed] });
 });
 
-// Gestione Interazioni (Comandi Slash e Componenti)
+// Gestione Interazioni (Comandi Slash, Modali e Componenti)
 client.on('interactionCreate', async (interaction) => {
   if (interaction.isChatInputCommand()) {
     const { commandName, options } = interaction;
@@ -175,6 +180,28 @@ client.on('interactionCreate', async (interaction) => {
 
       await interaction.reply({ content: 'Pannello ticket inviato con successo!', ephemeral: true });
       await interaction.channel.send({ embeds: [embed], components: [row] });
+    }
+
+    if (commandName === 'set-regole') {
+      if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        return interaction.reply({ content: 'Non hai i permessi per usare questo comando.', ephemeral: true });
+      }
+
+      const modal = new ModalBuilder()
+        .setCustomId('rules_modal')
+        .setTitle('Configura Regole del Server');
+
+      const rulesInput = new TextInputBuilder()
+        .setCustomId('rules_text_input')
+        .setLabel('Scrivi qui le regole (supporta formattazione)')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Inserisci le regole del server...')
+        .setRequired(true);
+
+      const actionRow = new ActionRowBuilder().addComponents(rulesInput);
+      modal.addComponents(actionRow);
+
+      await interaction.showModal(modal);
     }
 
     if (commandName === 'ban') {
@@ -244,7 +271,6 @@ client.on('interactionCreate', async (interaction) => {
         .setFooter({ text: `Pain & Sino` });
 
       if (mediaAttachment) {
-        // Se il file allegato è un video o un'immagine, lo impostiamo come immagine/video nell'embed
         embed.setImage(mediaAttachment.url);
       }
 
@@ -254,6 +280,23 @@ client.on('interactionCreate', async (interaction) => {
       });
 
       await interaction.reply({ content: `Annuncio in stile live inviato con successo in ${channel}!`, ephemeral: true });
+    }
+  }
+
+  // Gestione Invio Modale (per le Regole)
+  if (interaction.isModalSubmit()) {
+    if (interaction.customId === 'rules_modal') {
+      const rulesText = interaction.fields.getTextInputValue('rules_text_input');
+
+      const rulesEmbed = new EmbedBuilder()
+        .setColor('#2b2d31')
+        .setTitle('📜 Regolamento Ufficiale - Pain & Sino')
+        .setDescription(rulesText)
+        .setTimestamp()
+        .setFooter({ text: 'Pain & Sino Hub' });
+
+      await interaction.channel.send({ embeds: [rulesEmbed] });
+      await interaction.reply({ content: 'Pannello delle regole pubblicato con successo!', ephemeral: true });
     }
   }
 
