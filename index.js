@@ -1,18 +1,5 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ChannelType, PermissionsBitField, REST, Routes } = require('discord.js');
-const express = require('express');
 require('dotenv').config();
-
-// Configurazione server Express per Render (ascolto su 0.0.0.0 per UptimeRobot)
-const app = express();
-const port = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('Pino & Sino Hub Bot è online!');
-});
-
-app.listen(port, '0.0.0.0', () => {
-  console.log(`[EXPRESS] Mini server web in ascolto sulla porta ${port}`);
-});
 
 // Inizializzazione Client Discord con gli Intent necessari (incluso GuildMembers)
 const client = new Client({
@@ -24,7 +11,7 @@ const client = new Client({
   ],
 });
 
-// Variabili di configurazione lette dall'ambiente di Render
+// Variabili di configurazione lette dall'ambiente di Railway
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const VERIFIED_ROLE_ID = process.env.VERIFIED_ROLE_ID;
@@ -32,6 +19,12 @@ const UNVERIFIED_ROLE_ID = '1518197202596663437'; // Ruolo non verificato specif
 const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
 const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID;
 const STAFF_ROLE_ID = process.env.STAFF_ROLE_ID;
+
+// Controllo di sicurezza per il token su Railway
+if (!TOKEN) {
+  console.error('❌ ERRORE: Il token non è presente nelle variabili d\'ambiente di Railway!');
+  process.exit(1);
+}
 
 client.once('ready', async () => {
   console.log(`[BOT ONLINE] Acceduto come: ${client.user.tag}`);
@@ -82,10 +75,11 @@ client.once('ready', async () => {
     },
     {
       name: 'annuncio',
-      description: 'Invia un annuncio ufficiale formattato con embed',
+      description: 'Invia un annuncio formattato stile live/video a nome di Pain & Sino',
       options: [
-        { name: 'titolo', type: 3, description: 'Titolo dell annuncio', required: true },
-        { name: 'messaggio', type: 3, description: 'Testo dell annuncio', required: true },
+        { name: 'titolo', type: 3, description: 'Titolo o stato della live/video', required: true },
+        { name: 'messaggio', type: 3, description: 'Descrizione o link della live/video', required: true },
+        { name: 'media', type: 11, description: 'Carica un immagine o un video da mostrare nell embed', required: false },
         { name: 'canale', type: 7, description: 'Canale in cui inviare l annuncio', required: false }
       ]
     }
@@ -94,7 +88,7 @@ client.once('ready', async () => {
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   try {
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-    console.log('[RENDER/DEPLOY] Comandi registrati con successo!');
+    console.log('[RAILWAY/DEPLOY] Comandi registrati con successo!');
   } catch (error) {
     console.error('Errore nella registrazione dei comandi:', error);
   }
@@ -116,8 +110,8 @@ client.on('guildMemberAdd', async (member) => {
   if (!channel) return;
 
   const welcomeEmbed = new EmbedBuilder()
-    .setColor('#00ffcc')
-    .setTitle('Benvenuto su Pino & Sino Hub!')
+    .setColor('#9b59b6')
+    .setTitle('Benvenuto su Pain & Sino!')
     .setDescription(`Ciao ${member}, benvenuto nel nostro server! Ricordati di verificare il tuo account per accedere a tutti i canali.`)
     .setTimestamp();
 
@@ -132,7 +126,7 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'setup-verifica') {
       const embed = new EmbedBuilder()
         .setColor('#2b2d31')
-        .setTitle('Verifica - Pino & Sino Hub')
+        .setTitle('Verifica - Pain & Sino')
         .setDescription('Clicca sul bottone sottostante per verificare il tuo account e sbloccare l accesso al server.');
 
       const row = new ActionRowBuilder().addComponents(
@@ -150,7 +144,7 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'setup-ticket') {
       const embed = new EmbedBuilder()
         .setColor('#2b2d31')
-        .setTitle('🎫 Sistema di Supporto - Pino & Sino Hub')
+        .setTitle('🎫 Sistema di Supporto - Pain & Sino')
         .setDescription('Seleziona dal menu a tendina sottostante la categoria di ticket che desideri aprire.');
 
       const selectMenu = new StringSelectMenuBuilder()
@@ -239,21 +233,27 @@ client.on('interactionCreate', async (interaction) => {
       }
       const title = options.getString('titolo');
       const message = options.getString('messaggio');
+      const mediaAttachment = options.getAttachment('media');
       const channel = options.getChannel('canale') || interaction.channel;
 
       const embed = new EmbedBuilder()
         .setColor('#9b59b6')
-        .setTitle(title)
+        .setTitle(`🔴 ${title}`)
         .setDescription(message)
         .setTimestamp()
-        .setFooter({ text: `Pino & Sino Hub` });
+        .setFooter({ text: `Pain & Sino` });
+
+      if (mediaAttachment) {
+        // Se il file allegato è un video o un'immagine, lo impostiamo come immagine/video nell'embed
+        embed.setImage(mediaAttachment.url);
+      }
 
       await channel.send({
         content: `@everyone @here`,
         embeds: [embed]
       });
 
-      await interaction.reply({ content: `Annuncio inviato con successo in ${channel}!`, ephemeral: true });
+      await interaction.reply({ content: `Annuncio in stile live inviato con successo in ${channel}!`, ephemeral: true });
     }
   }
 
@@ -351,7 +351,7 @@ client.on('interactionCreate', async (interaction) => {
 
       const ticketEmbed = new EmbedBuilder()
         .setColor('#0099ff')
-        .setTitle(`Ticket: ${ticketType} - Pino & Sino Hub`)
+        .setTitle(`Ticket: ${ticketType} - Pain & Sino`)
         .setDescription(`Benvenuto ${interaction.user}. Descrivi dettagliatamente la tua richiesta. Lo staff ti risponderà il prima possibile.`);
 
       const closeRow = new ActionRowBuilder().addComponents(
@@ -399,7 +399,7 @@ client.on('interactionCreate', async (interaction) => {
 
       const ticketEmbed = new EmbedBuilder()
         .setColor('#9b59b6')
-        .setTitle(`Candidatura Staff: ${roleName} - Pino & Sino Hub`)
+        .setTitle(`Candidatura Staff: ${roleName} - Pain & Sino`)
         .setDescription(`Benvenuto ${interaction.user} nella tua candidatura per **${roleName}**.\n\nRispondi alle seguenti domande per inviare la tua richiesta:\n1. Quanti anni hai?\n2. Perché vuoi candidarti per questo ruolo?\n3. Hai esperienze precedenti?`);
 
       const closeRow = new ActionRowBuilder().addComponents(
