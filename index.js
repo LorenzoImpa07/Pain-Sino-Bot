@@ -14,6 +14,7 @@ const client = new Client({
 // Variabili di configurazione lette dall'ambiente di Railway
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_ID = process.env.GUILD_ID; // ID del tuo server per il caricamento istantaneo
 const VERIFIED_ROLE_ID = process.env.VERIFIED_ROLE_ID;
 const UNVERIFIED_ROLE_ID = '1518197202596663437'; // Ruolo non verificato specificato
 const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
@@ -92,8 +93,15 @@ client.once('ready', async () => {
 
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   try {
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-    console.log('[RAILWAY/DEPLOY] Comandi registrati con successo!');
+    if (GUILD_ID) {
+      // Registrazione istantanea sul server specifico
+      await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
+      console.log('[RAILWAY/DEPLOY] Comandi registrati istantaneamente sulla gilda!');
+    } else {
+      // Fallback globale se manca GUILD_ID
+      await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+      console.log('[RAILWAY/DEPLOY] Comandi registrati globalmente!');
+    }
   } catch (error) {
     console.error('Errore nella registrazione dei comandi:', error);
   }
