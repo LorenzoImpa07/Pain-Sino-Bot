@@ -94,11 +94,8 @@ client.once('clientReady', async () => {
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   try {
     if (GUILD_ID) {
-      // 1. Pulisce eventuali comandi globali residui per evitare i doppi comandi
       await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
       console.log('[RAILWAY/DEPLOY] Comandi globali vecchi eliminati con successo.');
-
-      // 2. Registra i comandi istantaneamente sulla gilda
       await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
       console.log('[RAILWAY/DEPLOY] Comandi registrati istantaneamente sulla gilda!');
     } else {
@@ -178,6 +175,12 @@ client.on('interactionCreate', async (interaction) => {
             description: 'Segnala utenti, violazioni o bug',
             value: 'ticket_report',
             emoji: '⚔️',
+          },
+          {
+            label: 'Partnership',
+            description: 'Richiedi una partnership con il server',
+            value: 'ticket_partnership',
+            emoji: '🤝',
           },
           {
             label: 'Candidatura Staff',
@@ -380,6 +383,9 @@ client.on('interactionCreate', async (interaction) => {
       } else if (selectedValue === 'ticket_report') {
         ticketType = 'Segnalazioni';
         ticketPrefix = 'segnalazione';
+      } else if (selectedValue === 'ticket_partnership') {
+        ticketType = 'Partnership';
+        ticketPrefix = 'partnership';
       }
 
       const channelName = `${ticketPrefix}-${interaction.user.username}`.toLowerCase();
